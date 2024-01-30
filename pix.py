@@ -6,7 +6,9 @@ async def validate_existence_pixKey(pixKey):
     validated_pixkey= formatPixKey(pixKey)
 
     if validated_pixkey [0] == True:
+        
         try:
+
           if len(pixKey) <= 36 or (len(pixKey) >= 36 and isMail(pixKey)):
             SPAPI = SmartPayApiAsync(API_USER,API_SECRET,API_URL)
             postdata = {
@@ -36,7 +38,9 @@ async def validate_existence_pixKey(pixKey):
                   }
 
           if len(pixKey) > 36:
+
             async with httpx.AsyncClient() as client:
+
               url_parsed = quote(validated_pixkey[1])
               response = await client.get(f"https://connect.smartpay.com.vc/api/pix/qrdecode?qrcode={url_parsed}")
 
@@ -45,14 +49,29 @@ async def validate_existence_pixKey(pixKey):
 
               data = response.json()
 
+              if data.get('status') == 'failed':
+                response = await client.get(f"https://connect.smartpay.com.vc/api/pix/qrdecode?qrcode={validated_pixkey[1]}")
+                data = response.json()
+                print('entro al siguiente')
+
+
+              if data.get('status') == 'ok' and data.get('data', {}).get('taxid') in ["32546471000196", "34544987000127"]:
+                return {
+                  "status_code": status.HTTP_403_FORBIDDEN, 
+                  "detail": {
+                      "msg": "Same Payor and Receiver Insitution. Cannot Proceed"
+                  }
+                }
+                
               if data.get('status') == 'ok':
                 return {
                   "status_code": status.HTTP_200_OK, 
                   "detail": {
                       "msg": "valid pixkey", 
                       "reformated_key": validated_pixkey[1], 
-                      "name": response.json()['data']['name'], 
-                      "amount": str(response.json()['data']['amount'])
+                      "name": data['data']['name'], 
+                      "amount": data['data']['amount'],
+                      "expired" : data['data']['timeout']
                   }
                 }
 
@@ -72,3 +91,4 @@ async def validate_existence_pixKey(pixKey):
           }
     else:
         return({"status_code": status.HTTP_200_OK, "detail":{"msg": validated_pixkey[1],"reformated_key": None, "name": None}})
+
