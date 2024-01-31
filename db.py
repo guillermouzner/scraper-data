@@ -45,7 +45,7 @@ def FinalSelect(now: datetime, delta: timedelta):
                 at.datetime == pay_to_pix_status_select.c.latest_datetime,
             ),
         )
-        .where(and_(at.step_id == 2, at.status_id == 3, at.action_id == 0))  # Agregar condiciones aquí
+        .where(and_(at.step_id == 2, at.status_id == 3, at.action_id == 0))
     )
     
     return final_select_query
